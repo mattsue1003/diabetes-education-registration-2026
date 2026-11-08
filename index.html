@@ -23,6 +23,7 @@
     form{background:#fff;border:2px solid var(--navy);padding:clamp(23px,4vw,42px);box-shadow:10px 10px 0 var(--coral)}.form-head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--navy);padding-bottom:17px;margin-bottom:25px}.form-head strong{font-size:19px;font-weight:900}.required{font-size:11px;color:var(--muted)}
     .field{margin:0 0 22px}.field label{display:block;font-size:13px;font-weight:900;margin-bottom:9px}.star{color:#e4513d;margin-left:4px}.field input[type=text],.field input[type=tel]{width:100%;height:50px;border:1.5px solid #b9bfcc;background:#fff;padding:0 14px;font:inherit;font-size:14px;border-radius:5px;outline:none}.field input:focus{border-color:var(--blue);box-shadow:3px 3px 0 var(--yellow)}
     .upload{display:block;border:2px dashed #aeb6c7;background:#f8f9fd;padding:19px;border-radius:7px;cursor:pointer;transition:.2s}.upload:hover{border-color:var(--blue);background:#f0f2ff}.upload input{position:absolute;width:1px;height:1px;opacity:0}.upload-inner{display:flex;align-items:center;gap:14px}.upload-icon{width:44px;height:44px;background:var(--coral);color:#fff;display:grid;place-items:center;font-size:21px;border-radius:50%}.upload b{font-size:13px}.upload small{display:block;color:var(--muted);font-size:11px;margin-top:4px}.filename{font-size:12px;color:#444;margin-top:12px;word-break:break-all}
+    .hp-wrap{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}.response-frame{display:none}
     .consent{display:flex;align-items:flex-start;gap:10px;margin:24px 0 19px;font-size:12px;line-height:1.8;color:#414b60}.consent input{accent-color:var(--blue);margin-top:4px;width:16px;height:16px;flex:none}.privacy{padding:14px;background:#f3f4f9;font-size:11px;line-height:1.8;color:#596174;margin:0 0 22px;border-left:4px solid var(--blue)}
     button{width:100%;height:56px;background:var(--coral);color:#fff;border:2px solid var(--navy);border-radius:5px;font:inherit;font-weight:900;letter-spacing:.04em;cursor:pointer;box-shadow:4px 4px 0 var(--navy);transition:.18s}button:hover{background:#f15f48;transform:translate(2px,2px);box-shadow:2px 2px 0 var(--navy)}button:disabled{opacity:.6;cursor:wait;transform:none;box-shadow:4px 4px 0 var(--navy)}.status{min-height:24px;margin-top:14px;text-align:center;font-size:13px;font-weight:700}.status.error{color:#b3422a}.status.success{color:#2a6c43}
     footer{background:var(--navy);color:#fff;padding:22px clamp(20px,7vw,104px);font-size:11px;display:flex;justify-content:space-between;font-weight:700;letter-spacing:.06em}
@@ -41,27 +42,41 @@
       <div class="field"><label>檢驗報告或轉介單<span class="star">＊</span></label><label class="upload" for="file"><input id="file" name="file" type="file" accept="image/*,application/pdf" required><span class="upload-inner"><span class="upload-icon">↑</span><span><b>選擇照片或 PDF</b><small>限上傳一個檔案，格式為照片或 PDF，最大 10 MB</small></span></span><span class="filename" id="filename">尚未選擇檔案</span></label></div>
       <div class="privacy">個人資料告知：所蒐集的姓名、聯絡電話及上傳文件，僅供本課程報名聯繫與資格確認使用，並由課程承辦單位妥善保管。</div>
       <label class="consent"><input type="checkbox" id="consent" required><span>我已閱讀並同意個人資料蒐集告知<span class="star">＊</span></span></label>
+      <div class="hp-wrap" aria-hidden="true"><label>網站<input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></label></div>
       <button id="submitBtn" type="submit">送出報名資料　↗</button><div class="status" id="status" role="status" aria-live="polite"></div>
     </form>
+    <iframe id="gasResponseFrame" name="gasResponseFrame" class="response-frame" title="表單送出狀態" aria-hidden="true"></iframe>
   </main>
   <footer><span>糖尿病衛教課程報名</span><span>CARE · KNOWLEDGE · WELLNESS</span></footer>
   <script>
-    const form=document.getElementById('registrationForm'), fileInput=document.getElementById('file'), statusBox=document.getElementById('status'), submitBtn=document.getElementById('submitBtn');
+    const GAS_WEB_APP_URL='PASTE_APPS_SCRIPT_EXEC_URL_HERE';
+    const form=document.getElementById('registrationForm'), fileInput=document.getElementById('file'), statusBox=document.getElementById('status'), submitBtn=document.getElementById('submitBtn'), responseFrame=document.getElementById('gasResponseFrame');
+    let pendingTransport=null, responseTimer=null;
     fileInput.addEventListener('change',()=>{document.getElementById('filename').textContent=fileInput.files[0]?fileInput.files[0].name:'尚未選擇檔案';});
+    window.addEventListener('message',(event)=>{
+      if(event.source!==responseFrame.contentWindow||!event.data||event.data.channel!=='diabetes-registration-response')return;
+      clearTimeout(responseTimer);if(pendingTransport){pendingTransport.remove();pendingTransport=null;}
+      if(event.data.ok){form.reset();document.getElementById('filename').textContent='尚未選擇檔案';statusBox.textContent=event.data.message;statusBox.className='status success';}
+      else showError(event.data.message||'資料送出失敗，請稍後再試。');
+      submitBtn.disabled=false;submitBtn.textContent='送出報名資料　↗';
+    });
     form.addEventListener('submit', async (event)=>{
-      event.preventDefault(); statusBox.textContent='';statusBox.className='status';
-      const phone=document.getElementById('phone').value.trim();
+      event.preventDefault();statusBox.textContent='';statusBox.className='status';
+      if(!(GAS_WEB_APP_URL.startsWith('https://script.google.com/macros/s/')&&GAS_WEB_APP_URL.endsWith('/exec'))){showError('請先在網頁程式中填入 Apps Script 部署網址。');return;}
+      const phone=document.getElementById('phone').value.trim(),file=fileInput.files[0];
       if(!/^09\d{8}$/.test(phone)){showError('請輸入 09 開頭的 10 碼手機號碼。');return;}
-      const file=fileInput.files[0];
       if(!file){showError('請選擇要上傳的檔案。');return;}
       if(file.size>10*1024*1024){showError('檔案大小不可超過 10 MB。');return;}
-      if(!(file.type==='application/pdf'||file.type.startsWith('image/'))){showError('檔案格式限照片或 PDF。');return;}
+      if(!(file.type==='application/pdf'||(file.type.startsWith('image/')&&file.type!=='image/svg+xml'))){showError('檔案格式限照片或 PDF。');return;}
       submitBtn.disabled=true;submitBtn.textContent='資料送出中…';
       try{
         const base64=await readFileAsBase64(file);
-        const payload={name:document.getElementById('name').value.trim(),phone,consent:document.getElementById('consent').checked,file:{name:file.name,mimeType:file.type||'application/octet-stream',data:base64}};
-        google.script.run.withSuccessHandler((result)=>{form.reset();document.getElementById('filename').textContent='尚未選擇檔案';statusBox.textContent=result.message;statusBox.className='status success';submitBtn.disabled=false;submitBtn.textContent='送出報名資料　↗';}).withFailureHandler((error)=>{showError(error&&error.message?error.message:'送出失敗，請稍後再試。');submitBtn.disabled=false;submitBtn.textContent='送出報名資料　↗';}).submitRegistration(payload);
-      }catch(error){showError(error.message||'無法讀取檔案，請重新選擇。');submitBtn.disabled=false;submitBtn.textContent='送出報名資料　↗';}
+        const payload={name:document.getElementById('name').value.trim(),phone,consent:document.getElementById('consent').checked,website:document.getElementById('website').value,file:{name:file.name,mimeType:file.type||'application/octet-stream',data:base64}};
+        pendingTransport=document.createElement('form');pendingTransport.method='POST';pendingTransport.action=GAS_WEB_APP_URL;pendingTransport.target='gasResponseFrame';pendingTransport.enctype='application/x-www-form-urlencoded';
+        const input=document.createElement('input');input.type='hidden';input.name='payload';input.value=JSON.stringify(payload);pendingTransport.appendChild(input);document.body.appendChild(pendingTransport);
+        HTMLFormElement.prototype.submit.call(pendingTransport);
+        responseTimer=setTimeout(()=>{if(pendingTransport){pendingTransport.remove();pendingTransport=null;}showError('尚未收到回覆。請稍後確認是否已送出，避免重複提交。');submitBtn.disabled=false;submitBtn.textContent='送出報名資料　↗';},90000);
+      }catch(error){if(pendingTransport){pendingTransport.remove();pendingTransport=null;}showError(error.message||'無法讀取檔案，請重新選擇。');submitBtn.disabled=false;submitBtn.textContent='送出報名資料　↗';}
     });
     function readFileAsBase64(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(new Error('檔案讀取失敗。'));reader.readAsDataURL(file);});}
     function showError(message){statusBox.textContent=message;statusBox.className='status error';}
