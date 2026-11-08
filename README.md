@@ -8,9 +8,10 @@ GitHub Pages 提供報名表畫面；Google Apps Script 接收表單資料，並
 
 1. 前往 [script.google.com](https://script.google.com/) 建立新專案。
 2. 開啟 GitHub 的 [`Code.gs`](https://github.com/mattsue1003/diabetes-education-registration-2026/blob/main/Code.gs)，按 **Raw**，複製全部內容，貼到 Apps Script 的 `Code.gs`。
-3. 在左側按「＋」→「HTML」，檔名輸入 `index`。這個檔案只為符合專案結構；實際報名頁由 GitHub Pages 提供。
-4. 按左側齒輪「專案設定」，勾選「在編輯器中顯示 `appsscript.json` 資訊清單檔案」。把 GitHub [`appsscript.json`](https://github.com/mattsue1003/diabetes-education-registration-2026/blob/main/appsscript.json) 的內容複製進去。
-5. 儲存專案。
+3. 按左側齒輪「專案設定」，勾選「在編輯器中顯示 `appsscript.json` 資訊清單檔案」。把 GitHub [`appsscript.json`](https://github.com/mattsue1003/diabetes-education-registration-2026/blob/main/appsscript.json) 的內容複製進去。
+4. 儲存專案。
+
+`index.html` 留在 GitHub Pages 使用，不用貼進 Apps Script。
 
 ### 2. 初始化試算表和上傳資料夾
 
