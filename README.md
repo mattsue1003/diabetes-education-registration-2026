@@ -1,44 +1,29 @@
 # 糖尿病衛教課程報名表
 
-Google Apps Script 網頁應用程式，使用 Google 試算表記錄報名資料，並將上傳檔案放入 Google Drive 資料夾。醫院照片已嵌入 `index.html`，不需額外設定圖片網址。
+本專案由 GitHub 保存程式碼，Google Apps Script 執行報名頁、寫入試算表並將上傳檔案存進 Google Drive。醫院照片已嵌入 `index.html`。
 
-## 專案檔案
-
-- `Code.gs`：表單後端、資料驗證、Google 試算表與 Drive 存檔。
-- `index.html`：報名表網頁與內嵌醫院照片。
-- `appsscript.json`：Apps Script 專案設定。
-
-## 建立及部署
+## 部署步驟
 
 ### 1. 建立 Apps Script 專案
 
-1. 到 [script.google.com](https://script.google.com/) 建立「新專案」。
-2. 專案設定齒輪 → 勾選「在編輯器中顯示 appsscript.json 資訊清單檔案」。
-3. 複製專案設定中的「指令碼 ID」。
+1. 前往 [script.google.com](https://script.google.com/) 建立「新專案」。
+2. 在「專案設定」開啟「在編輯器中顯示 `appsscript.json` 資訊清單檔案」。
+3. 複製專案的「指令碼 ID」。
 
-### 2. 建立 GitHub 儲存庫
+### 2. 下載 GitHub 專案並安裝 clasp
 
-1. 到 GitHub 按右上角 `+` → `New repository`。
-2. 本專案儲存庫名稱為 `diabetes-education-registration-2026`。此儲存庫設為 Public，因此公開內容僅放程式碼與網站圖片。
-3. 按 `Add file` → `Upload files`，上傳本專案的 `Code.gs`、`index.html`、`appsscript.json` 與 `README.md`，按 `Commit changes`。
-
-### 3. 連結本機資料夾與 Apps Script
-
-需先安裝 Node.js，再開啟終端機執行：
+在已安裝 Node.js 的電腦開啟終端機：
 
 ```bash
+git clone https://github.com/mattsue1003/diabetes-education-registration-2026.git
+cd diabetes-education-registration-2026
 npm install -g @google/clasp
 clasp login
 ```
 
-將 GitHub 儲存庫複製到電腦：
+### 3. 連結並推送到 Apps Script
 
-```bash
-git clone https://github.com/mattsue1003/diabetes-education-registration-2026.git
-cd diabetes-education-registration
-```
-
-在專案根目錄新增 `.clasp.json`，填入剛才複製的 Apps Script 指令碼 ID：
+在專案根目錄新增 `.clasp.json`，填入你的指令碼 ID：
 
 ```json
 {
@@ -47,36 +32,38 @@ cd diabetes-education-registration
 }
 ```
 
-`.clasp.json` 是本機連線設定，不要上傳到 GitHub。接著把程式推送至 Apps Script：
+接著執行：
 
 ```bash
 clasp push
 ```
 
-### 4. 初始化資料表與資料夾
+`.clasp.json` 是本機連線設定，已列入 `.gitignore`，不要上傳到 GitHub。
 
-1. 在 Apps Script 編輯器選取 `setup` 函式並按「執行」。
-2. 依畫面授權 Google 試算表與 Google 雲端硬碟存取權。
-3. 程式會建立「糖尿病衛教課程報名資料」試算表，以及「衛教報名123_上傳檔案」資料夾。
+### 4. 建立試算表與雲端資料夾
 
-### 5. 部署網頁應用程式
+在 Apps Script 編輯器選取 `setup` 函式並按「執行」，依畫面授權。程式會建立「糖尿病衛教課程報名資料」試算表，以及「衛教報名123_上傳檔案」資料夾。
 
-1. Apps Script 右上角按「部署」→「新增部署作業」。
-2. 類型選「網頁應用程式」。
-3. 「執行身分」選「我」；「誰可以存取」依招生對象選擇。若要讓一般民眾填寫，需選擇允許的外部存取範圍。
-4. 按「部署」，複製產生的網頁應用程式網址。
+### 5. 部署可填寫的表單
+
+1. 在 Apps Script 選「部署」→「新增部署作業」，類型選「網頁應用程式」。
+2. 「執行身分」選「我」。
+3. 按「部署」，依招生對象設定存取範圍，再複製 Apps Script 提供的網頁應用程式網址。正式表單網址會以 `/exec` 結尾。
+4. 先用虛構資料測試送件；確認資料進入試算表及 Drive 後，再提供給報名者。
+
+GitHub 儲存庫網址是程式碼位置，不是報名表網址。此頁使用 `google.script.run`，需由 Apps Script 網頁應用程式提供；GitHub Pages 不會執行目前的送件及檔案上傳功能。
 
 ## 更新程式
 
-先從 GitHub 拉取最新版本，再推送到 Apps Script：
+在專案資料夾執行：
 
 ```bash
 git pull
 clasp push
 ```
 
-若更新已部署網站的程式碼，回 Apps Script「部署」→「管理部署作業」→編輯現有部署，選擇「新增版本」並部署。若只是 `clasp push`，已發布的版本不一定會自動更新。
+要更新已發布的網頁，回 Apps Script「部署」→「管理部署作業」→編輯部署，選擇新增版本並部署。
 
-## 隱私提醒
+## 隱私
 
-報名資料含聯絡電話及檢驗報告／轉介單。此儲存庫為公開，請勿提交任何報名者資料、上傳檔案、試算表匯出資料或 `.clasp.json`。Apps Script 執行後，報名資料存入部署者的 Google 試算表和雲端硬碟。表單頁使用 `google.script.run`，因此請以 Apps Script 網頁應用程式網址提供填寫；GitHub Pages 只會顯示靜態頁面，無法執行目前的送件與 Drive 上傳功能。
+儲存庫是公開的，只放程式碼和網站圖片。請勿提交報名者姓名、電話、檢驗報告、轉介單、試算表匯出資料或 `.clasp.json`。報名資料由 Apps Script 寫入部署者的 Google 試算表和雲端硬碟；請勿將試算表或上傳資料夾設為公開共用。
